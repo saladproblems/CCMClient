@@ -1,5 +1,5 @@
 function New-CCMClientCimSession {
-   <#
+    <#
 .Synopsis
   Short description
 .DESCRIPTION
@@ -22,29 +22,30 @@ function New-CCMClientCimSession {
   The functionality that best describes this cmdlet
 #>
 
-   [CmdletBinding()]
-   [Alias()]
-   [OutputType([CimSession])]
-   Param
-   (
-       [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
-       $ComputerName,
+    [CmdletBinding()]
+    [Alias()]
+    [OutputType([CimSession])]
+    Param
+    (
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
+        [string[]]$ComputerName,
 
-       [Parameter()]
-       [PSCredential]$Credential
-   )
+        [Parameter()]
+        [ccmCimCredentialTransform()]
+        [Microsoft.Management.Infrastructure.Options.CimCredential]$Credential
+    )
 
-   Begin {
-      $option = [Microsoft.Management.Infrastructure.Options.DComSessionOptions]::new()
-      if ($Credential) {
-         $option.AddDestinationCredentials( (ConvertTo-CCMClientCimCredential -Credential $Credential) )
-      }
-   }
-   Process {
-       ForEach ($a_ComputerName in $ComputerName) {
-         [Microsoft.Management.Infrastructure.CimSession]::Create($a_ComputerName,$option)
-       }
-   }
-   End {
-   }
+    Begin {
+        $option = [Microsoft.Management.Infrastructure.Options.DComSessionOptions]::new()
+        if ($Credential) {
+            $option.AddDestinationCredentials( $Credential )
+        }
+    }
+    Process {
+        ForEach ($a_ComputerName in $ComputerName) {
+            [Microsoft.Management.Infrastructure.CimSession]::Create($a_ComputerName, $option)
+        }
+    }
+    End {
+    }
 }

@@ -2,11 +2,12 @@
     [cmdletbinding()]
     [alias('Install-CCMClientSoftwareUpdates')]
     param (
+        [Parameter]
 
         [Parameter(ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ParameterSetName = 'ComputerName',
-            Position = 1,
+            Position = 0,
             Mandatory = $true)]
         #[alias('Name')]
         [string[]]$ComputerName,
@@ -39,9 +40,20 @@
                         Write-Verbose -Verbose
 
             $null = Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updates }
-
+            Start-Sleep -Milliseconds 100
             $updates | Get-CimInstance
         }
     }
     end {}
 }
+
+<#
+$update[0].CimSystemProperties.ServerName
+
+$cimParam = @{
+    CimSession = New-CCMClientCimSession -ComputerName $update[0].CimSystemProperties.ServerName
+    NameSpace = 'root/ccm/clientsdk'
+}
+
+Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$update[0] }
+#>

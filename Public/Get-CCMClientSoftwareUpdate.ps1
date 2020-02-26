@@ -8,7 +8,10 @@
             Position = 0,
             Mandatory = $true)]
         [alias('Name')]
-        [string[]]$ComputerName
+        [string[]]$ComputerName,
+
+        [parameter()]
+        [pscredential]$Credential
     )
 
     begin {
@@ -19,7 +22,13 @@
     }
 
     process {
-        New-CCMClientCimSession -ComputerName $ComputerName | 
+        $sessionParam = @{
+            ComputerName = $ComputerName        
+        }
+        if($Credential) {
+            $sessionParam['Credential'] = $Credential
+        }
+        New-CCMClientCimSession @sessionParam | 
             Get-CimInstance @cimParam
     }
     end {}

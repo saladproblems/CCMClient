@@ -7,7 +7,7 @@ param(
 
 Remove-Module CCM -ErrorAction SilentlyContinue
 
-Describe "CCM module function checks" {
+Describe "CCMClient module function checks" {
     $localhostResource = Get-CCMResource -Identity $ResourceName
     Context Connect-CCM {
         it "Global variable should contain CimSession" { 

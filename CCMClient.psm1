@@ -48,6 +48,21 @@ namespace CCMClient
      }
 }
 '@
+class ccmCimCredentialTransform:System.Management.Automation.ArgumentTransformationAttribute {    
+    [object] Transform([System.Management.Automation.EngineIntrinsics]$engineIntrinsics, [object]$object) {        
+        $output = switch ($object) {
+            { $PSItem -is [Microsoft.Management.Infrastructure.Options.CimCredential] } {
+                $PSItem
+            }
+            { $PSItem -is [PSCredential] } {                
+                $domain = $object.UserName -replace '.+@|\\.+'
+                $UserName = $object.UserName -replace '.+\\|@.+'
+                [Microsoft.Management.Infrastructure.Options.CimCredential]::new('Default', $domain, $UserName, $object.Password) 
+            }
+        }                    
+        return $output
+    }
+}
 <#
 class ModuleInfoAttribute : System.Management.Automation.ArgumentTransformationAttribute {
     [object] Transform([System.Management.Automation.EngineIntrinsics]$engineIntrinsics, [object] $inputData) {
@@ -146,6 +161,98 @@ function ConvertTo-CCMClientCimCredential {
        $UserName = $Credential.UserName -replace '.+\\|@.+'
        [Microsoft.Management.Infrastructure.Options.CimCredential]::new('Default', $domain, $UserName, $Credential.Password)        
    }
+}
+function Get-CCMClientCacheConfig {
+    [cmdletbinding(DefaultParameterSetName='none')]
+param (
+
+    [Parameter(ValueFromPipeline = $true,
+        ValueFromPipelineByPropertyName = $true,
+        ParameterSetName = 'ComputerName',
+        Position = 0,
+        Mandatory = $true)]
+    [alias('Name')]
+    [string[]]$ComputerName,
+
+    [Parameter(ValueFromPipeline = $true,
+        ValueFromPipelineByPropertyName = $true,
+        ParameterSetName = 'CimSession',
+        Position = 0,
+        Mandatory = $true)]
+    [Microsoft.Management.Infrastructure.CimSession[]]$CimSession,
+
+    [parameter(ParameterSetName = 'ComputerName')]
+    [pscredential]$Credential
+)
+
+begin {
+    $cimParam = @{
+        NameSpace = 'root\ccm\SoftMgmtAgent'
+        ClassName = 'CacheConfig'
+    }
+}
+
+process {
+    Switch ($PSCmdlet.ParameterSetName){
+        'ComputerName'{
+            $cimParam['ComputerName'] = $ComputerName                
+        }
+        'CimSession' {
+            $cimParam['CimSession'] = $CimSession
+        }
+    }
+    if ($Credential){
+        $cimParam['Credential'] = $Credential
+    }
+    
+    Get-CimInstance @cimParam
+}
+}
+function Get-CCMClientCacheItem {
+        [cmdletbinding(DefaultParameterSetName='none')]
+    param (
+
+        [Parameter(ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            ParameterSetName = 'ComputerName',
+            Position = 0,
+            Mandatory = $true)]
+        [alias('Name')]
+        [string[]]$ComputerName,
+
+        [Parameter(ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true,
+            ParameterSetName = 'CimSession',
+            Position = 0,
+            Mandatory = $true)]
+        [Microsoft.Management.Infrastructure.CimSession[]]$CimSession,
+
+        [parameter(ParameterSetName = 'ComputerName')]
+        [pscredential]$Credential
+    )
+
+    begin {
+        $cimParam = @{
+            NameSpace = 'root\ccm\SoftMgmtAgent'
+            ClassName = 'CacheInfoEx'
+        }
+    }
+
+    process {
+        Switch ($PSCmdlet.ParameterSetName){
+            'ComputerName'{
+                $cimParam['ComputerName'] = $ComputerName                
+            }
+            'CimSession' {
+                $cimParam['CimSession'] = $CimSession
+            }
+        }
+        if ($Credential){
+            $cimParam['Credential'] = $Credential
+        }
+        
+        Get-CimInstance @cimParam
+    }
 }
 function Get-CCMClientComplianceSettings {
     [cmdletbinding(DefaultParameterSetName = 'ComputerName')]
@@ -246,8 +353,8 @@ function Get-CCMClientSoftwareUpdate {
         [alias('Name')]
         [string[]]$ComputerName,
 
-        [Parameter(ParameterSetName = 'CimSession')]
-        [CimSession[]]$CimSession
+        [parameter()]
+        [pscredential]$Credential
     )
 
     begin {
@@ -258,17 +365,14 @@ function Get-CCMClientSoftwareUpdate {
     }
 
     process {
-        Switch ($PSCmdlet.ParameterSetName) {
-            'ComputerName' {
-                $cimParam['ComputerName'] = $ComputerName
-            }
-
-            'CimSession' {
-                $cimParam['CimSession'] = $CimSession
-            }
+        $sessionParam = @{
+            ComputerName = $ComputerName        
         }
-
-        Get-CimInstance @cimParam
+        if($Credential) {
+            $sessionParam['Credential'] = $Credential
+        }
+        New-CCMClientCimSession @sessionParam | 
+            Get-CimInstance @cimParam
     }
     end {}
 }
@@ -276,11 +380,12 @@ Function Install-CCMClientSoftwareUpdate {
     [cmdletbinding()]
     [alias('Install-CCMClientSoftwareUpdates')]
     param (
+        [Parameter]
 
         [Parameter(ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ParameterSetName = 'ComputerName',
-            Position = 1,
+            Position = 0,
             Mandatory = $true)]
         #[alias('Name')]
         [string[]]$ComputerName,
@@ -313,12 +418,23 @@ Function Install-CCMClientSoftwareUpdate {
                         Write-Verbose -Verbose
 
             $null = Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updates }
-
+            Start-Sleep -Milliseconds 100
             $updates | Get-CimInstance
         }
     }
     end {}
 }
+
+<#
+$update[0].CimSystemProperties.ServerName
+
+$cimParam = @{
+    CimSession = New-CCMClientCimSession -ComputerName $update[0].CimSystemProperties.ServerName
+    NameSpace = 'root/ccm/clientsdk'
+}
+
+Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$update[0] }
+#>
 Function Invoke-CCMClientPackageRerun
 {
     [cmdletbinding()]
@@ -494,52 +610,6 @@ Function Invoke-CCMClientScheduleUpdate
     }
 
 }
-Function Invoke-CCMCollectionRefresh {
-
-    [cmdletbinding()]
-
-    param(
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true, Position = 0)]
-        [CimInstance[]]$Collection,
-        [switch]$Wait
-    )
-
-    Begin {}
-
-    Process {
-        foreach ($obj in $Collection) {
-            $time = $obj.LastRefreshTime
-
-            $null = $obj | Invoke-CimMethod -MethodName RequestRefresh
-
-            '{0}: Collection "{1}" updated {2}' -f $MyInvocation.InvocationName, $obj.name, $obj.LastRefreshTime | Write-Verbose
-
-            $obj = $obj | Get-CimInstance
-
-            $x = $null
-
-            While ( $Wait -and $obj.LastRefreshTime -eq $time -and $x -le 6000 ) {
-
-                $x++
-                Write-Progress -Activity 'Waiting for Collection Refresh' -Status "Collection $($obj.Name)"
-                if ( ($x % 30) -eq 0 ) {
-                    '{0}: waiting for "{1}", {2} seconds elapsed' -f $MyInvocation.InvocationName, $obj.Name, $x |
-                        Write-Verbose
-                }
-
-                Start-Sleep -Seconds 1
-                $obj = $obj | Get-CimInstance
-            }
-
-            '{0}: Collection "{1}" updated {2}' -f $MyInvocation.InvocationName, $obj.name, $obj.LastRefreshTime |
-                Write-Verbose
-
-            $obj
-
-        }
-    }
-
-}
 <#This function should be moved to the CCM client module
 
 Function Invoke-CCMPackageRerun
@@ -614,7 +684,7 @@ Function Invoke-CCMPackageRerun
 #https://kelleymd.wordpress.com/2015/02/08/run-local-advertisement-with-triggerschedule/
 #>
 function New-CCMClientCimSession {
-   <#
+    <#
 .Synopsis
   Short description
 .DESCRIPTION
@@ -637,72 +707,31 @@ function New-CCMClientCimSession {
   The functionality that best describes this cmdlet
 #>
 
-   [CmdletBinding()]
-   [Alias()]
-   [OutputType([CimSession])]
-   Param
-   (
-       [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
-       $ComputerName,
+    [CmdletBinding()]
+    [Alias()]
+    [OutputType([CimSession])]
+    Param
+    (
+        [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
+        [string[]]$ComputerName,
 
-       [Parameter()]
-       [PSCredential]$Credential
-   )
-
-   Begin {
-      $option = [Microsoft.Management.Infrastructure.Options.DComSessionOptions]::new()
-      if ($Credential) {
-         $option.AddDestinationCredentials( (ConvertTo-CCMClientCimCredential -Credential $Credential) )
-      }
-   }
-   Process {
-       ForEach ($a_ComputerName in $ComputerName) {
-         [Microsoft.Management.Infrastructure.CimSession]::Create($a_ComputerName,$option)
-       }
-   }
-   End {
-   }
-}
-Function New-CCMCollection
-{
-    [cmdletbinding()]
-    [Alias('New-SMS_Collection')]
-
-    param(
-        [Parameter(Mandatory)]
-        [Alias('CollectionName')]
-        [string]$Name,
-
-        [ccm.CollectionType]$CollectionType,
-
-        [Parameter(Mandatory,ParameterSetName='CollectionID')]
-        [string]$LimitToCollectionID,
-
-        [Parameter(Mandatory,ParameterSetName='Collection')]
-        [ValidateScript({$PSItem.CimClass.CimClassName -eq 'SMS_Collection'})]
-        [ciminstance]$LimitToCollection
+        [Parameter()]
+        [ccmCimCredentialTransform()]
+        [Microsoft.Management.Infrastructure.Options.CimCredential]$Credential
     )
 
-    Begin
-    {
-        $cimHash = $sbCCMGetCimParm.InvokeReturnAsIs()
+    Begin {
+        $option = [Microsoft.Management.Infrastructure.Options.DComSessionOptions]::new()
+        if ($Credential) {
+            $option.AddDestinationCredentials( $Credential )
+        }
     }
-
-    Process
-    {
-        $newCollectionProperty = @{
-            Name = $Name
-            CollectionType = [int]$CollectionType
-            LimitToCollectionID = $LimitToCollectionID
+    Process {
+        ForEach ($a_ComputerName in $ComputerName) {
+            [Microsoft.Management.Infrastructure.CimSession]::Create($a_ComputerName, $option)
         }
-        if ($LimitToCollection)
-        {
-            $newCollectionProperty['LimitToCollectionID'] = $LimitToCollection.CollectionID
-        }
-
-        $newCollectionProperty | Out-String | Write-Verbose
-
-        New-CimInstance -OutVariable newCollection @cimHash -ClassName SMS_Collection -Property $newCollectionProperty
+    }
+    End {
     }
 }
 function Wait-CCMClientSoftwareUpdate {
