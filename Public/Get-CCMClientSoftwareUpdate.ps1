@@ -23,13 +23,13 @@
 
     process {
         $sessionParam = @{
-            ComputerName = $ComputerName        
+            ComputerName = $ComputerName
         }
-        if($Credential) {
+        if ($Credential) {
             $sessionParam['Credential'] = $Credential
         }
-        New-CCMClientCimSession @sessionParam | 
+        New-CCMClientCimSession @sessionParam |
             Get-CimInstance @cimParam
     }
-    end {}
+    end { }
 }

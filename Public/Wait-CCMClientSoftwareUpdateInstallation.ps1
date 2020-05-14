@@ -25,7 +25,7 @@
         $cimParam = @{
             NameSpace = 'root/ccm/ClientSDK'
             ClassName = 'CCM_SoftwareUpdate'
-            Filter = 'EvaluationState < 8'
+            Filter    = 'EvaluationState < 8'
         }
     }
     process {
@@ -45,13 +45,13 @@
 
         While (($updates = Get-CimInstance @cimParam)) {
             $updates | ForEach-Object {
-                Write-Progress -Activity 'Waiting for patch installation' -CurrentOperation $PSItem.PSComputerName -Status ('{0}: {1}' -f [CCM.EvaluationState]$PSItem.EvaluationState,$PSItem.Name)
+                Write-Progress -Activity 'Waiting for patch installation' -CurrentOperation $PSItem.PSComputerName -Status ('{0}: {1}' -f [CCM.EvaluationState]$PSItem.EvaluationState, $PSItem.Name)
             }
-            if (-not $Quiet.IsPresent){
+            if (-not $Quiet.IsPresent) {
                 $updates | Out-String | Write-Host -ForegroundColor Green
             }
             Start-Sleep -Seconds $Interval
         }
     }
-    end {}
+    end { }
 }

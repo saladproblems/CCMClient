@@ -14,7 +14,7 @@
     )
 
     Begin
-    {}
+    { }
 
     Process {
         if (-not $CimSession) {

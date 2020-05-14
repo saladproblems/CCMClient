@@ -9,10 +9,14 @@
         [string[]]$ComputerName,
 
         [Parameter(ParameterSetName = 'ComputerName')]
-        [PSCredential]$Credential
+        [PSCredential]$Credential,
+
+        [Parameter()]
+        [switch]$Quiet
+
     )
     Begin {
-        $taskHash = @{
+        $scheduleHash = @{
             '{00000000-0000-0000-0000-000000000001}' = 'Hardware Inventory'
             '{00000000-0000-0000-0000-000000000002}' = 'Software Inventory'
             '{00000000-0000-0000-0000-000000000003}' = 'Discovery Inventory'
@@ -62,24 +66,46 @@
             '{00000000-0000-0000-0000-000000000221}' = 'Endpoint deployment reevaluate'
             '{00000000-0000-0000-0000-000000000222}' = 'Endpoint AM policy reevaluate'
             '{00000000-0000-0000-0000-000000000223}' = 'External event detection'
-
+            '{00000000-0000-0000-0000-000000000225}' = 'LSRefreshDefaultMPTask'
         }
     }
 
     Process {
-        $cimSession = New-CCMClientCimSession @PSBoundParameters
+        $cimSessionParam = $PSBoundParameters.PSObject.Copy()
+        $null = $cimSessionParam.Remove('Quiet')
+        $cimSession = New-CCMClientCimSession @cimSessionParam
 
-        $cimParam = @{
-            Namespace  = 'root/ccm'
-            Class      = 'SMS_CLIENT'
-            MethodName = 'TriggerSchedule'
+        $cimSessionHash = @{ }
+
+        #build hash to avoid slower where-object in invoke step
+        $null = $cimSession.foreach( { $cimSessionHash.add($PSItem.ComputerName, $PSItem) })
+
+        $getScheduleParam = @{
+            Class      = 'CCM_Scheduler_ScheduledMessage'
+            Namespace  = 'root\ccm\policy\machine\actualconfig'
+            Filter     = 'ScheduledMessageID LIKE "{00000000-0000-0000-0000-%"'
             CimSession = $cimSession
         }
-        $taskHash.Keys | ForEach-Object {
-            Write-Verbose $PSItem
-            try { $null = Invoke-CimMethod @cimParam -Arguments @{ sScheduleID = $PSItem } -ErrorAction Stop }
-            catch { $PSItem }
+        #list available client schedules
+        $schedule = Get-CimInstance @getScheduleParam
+
+        $cimParam = @{
+            Namespace   = 'root/ccm'
+            Class       = 'SMS_CLIENT'
+            MethodName  = 'TriggerSchedule'
+            ErrorAction = 'Stop'
+        }
+
+        foreach ($a_Schedule in $schedule) {
+            Try {
+                Invoke-CimMethod @cimParam -CimSession $cimSessionHash[$a_Schedule.PSComputerName] -Arguments @{ sScheduleID = $a_Schedule.ScheduledMessageID } |
+                    Add-Member -NotePropertyName Schedule -NotePropertyValue ('{1} - {0}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID) -PassThru:(-not $Quiet.IsPresent)
+
+            }
+            catch {
+                'Could not trigger schedule: {0} - {1}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID |
+                    Write-Warning
+            }
         }
     }
-
 }

@@ -1,5 +1,5 @@
 function Get-CCMClientCacheItem {
-        [cmdletbinding(DefaultParameterSetName='none')]
+    [cmdletbinding(DefaultParameterSetName = 'none')]
     param (
 
         [Parameter(ValueFromPipeline = $true,
@@ -29,18 +29,18 @@ function Get-CCMClientCacheItem {
     }
 
     process {
-        Switch ($PSCmdlet.ParameterSetName){
-            'ComputerName'{
-                $cimParam['ComputerName'] = $ComputerName                
+        Switch ($PSCmdlet.ParameterSetName) {
+            'ComputerName' {
+                $cimParam['ComputerName'] = $ComputerName
             }
             'CimSession' {
                 $cimParam['CimSession'] = $CimSession
             }
         }
-        if ($Credential){
+        if ($Credential) {
             $cimParam['Credential'] = $Credential
         }
-        
+
         Get-CimInstance @cimParam
     }
 }

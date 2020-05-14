@@ -2,40 +2,45 @@
     [cmdletbinding()]
     [alias('Install-CCMClientSoftwareUpdates')]
     param (
-        [Parameter]
-
         [Parameter(ValueFromPipeline = $true,
-            ValueFromPipelineByPropertyName = $true,
-            ParameterSetName = 'ComputerName',
+            #ValueFromPipelineByPropertyName = $true,
+            #ParameterSetName = 'ComputerName',
             Position = 0,
             Mandatory = $true)]
-        #[alias('Name')]
-        [string[]]$ComputerName,
-
-        [Parameter(ParameterSetName = 'ComputerName')]
-        [PSCredential]$Credential
+        [alias('Update')]
+        [ValidateCimClass('CCM_SoftwareUpdate')]
+        [ciminstance[]]$InputObject
     )
 
-    begin {}
+    begin { }
 
     process {
-        foreach ($a_ComputerName in $ComputerName){
+        foreach ($a_ComputerName in $ComputerName) {
             $cimSessionParam = @{
                 ComputerName = $a_ComputerName
             }
-            if ($Credential){
+            if ($Credential) {
                 $cimSessionParam['Credential'] = $Credential
             }
 
+            $updateHash = $Update | Group-Object -AsHashTable -Property PSComputerName
+
             $cimParam = @{
                 CimSession = New-CCMClientCimSession @cimSessionParam
-                NameSpace = 'root/ccm/clientsdk'
+                NameSpace  = 'root/ccm/clientsdk'
+            }
+
+            $updateHash.GetEnumerator() | ForEach-Object {
+                [ciminstance[]]$updateHash[$PSItem.Key]
+
+                #Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updateHash[$PSItem.Key] }
+
             }
 
             $updates = Get-CimInstance @cimParam -ClassName CCM_SoftwareUpdate
 
             $updates |
-                Select-Object PSComputerName,ArticleID,Name |
+                Select-Object PSComputerName, ArticleID, Name |
                     Out-String |
                         Write-Verbose -Verbose
 
@@ -44,16 +49,7 @@
             $updates | Get-CimInstance
         }
     }
-    end {}
+    end {
+
+    }
 }
-
-<#
-$update[0].CimSystemProperties.ServerName
-
-$cimParam = @{
-    CimSession = New-CCMClientCimSession -ComputerName $update[0].CimSystemProperties.ServerName
-    NameSpace = 'root/ccm/clientsdk'
-}
-
-Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$update[0] }
-#>

@@ -12,8 +12,7 @@
         [PSCredential]$Credential
     )
 
-    Begin
-    {
+    Begin {
         $invokeParam = @{
             ScriptBlock = {
                 $CMObject = new-object -com "UIResource.UIResourceMgr"
@@ -28,7 +27,7 @@
 
         $computerList = [System.Collections.Generic.List[String]]::new()
 
-        if ($Credential){
+        if ($Credential) {
             $invokeParam['Credential'] = $Credential
         }
     }
