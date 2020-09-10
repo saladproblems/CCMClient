@@ -63,6 +63,33 @@ class ccmCimCredentialTransform:System.Management.Automation.ArgumentTransformat
         return $output
     }
 }
+class ccmClient {
+    [ciminstance] static getClientCimInstance (
+        [string]$ClassName,
+        [string]$NameSpace
+    ){
+        return (Get-Ciminstance -NameSpace $NameSpace -ClassName $ClassName)
+    }
+    [ciminstance[]] static getClientCimInstance (
+        [string]$ClassName,
+        [string]$NameSpace,
+        [string[]]$ComputerName
+    ){
+        return (Get-Ciminstance -ComputerName $ComputerName -NameSpace $NameSpace -ClassName $ClassName)
+    }
+    [ciminstance[]] static getClientCimInstance (
+        [string]$ClassName,
+        [string]$NameSpace,
+        [CimSession[]]$CimSession
+    ){
+        return (Get-Ciminstance -CimSession $CimSession -NameSpace $NameSpace -ClassName $ClassName)
+    }
+    [ciminstance[]] static getClientCimInstance (
+        [CimInstance[]]$CimInstance
+    ){
+        return ($CimInstance | Get-Ciminstance)
+    }
+}
 <#
 class ModuleInfoAttribute : System.Management.Automation.ArgumentTransformationAttribute {
     [object] Transform([System.Management.Automation.EngineIntrinsics]$engineIntrinsics, [object] $inputData) {
@@ -213,7 +240,6 @@ function Get-CCMClientBoundaryGroupCache {
 function Get-CCMClientCacheConfig {
     [cmdletbinding(DefaultParameterSetName = 'none')]
     param (
-
         [Parameter(ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ParameterSetName = 'ComputerName',
@@ -259,7 +285,6 @@ function Get-CCMClientCacheConfig {
 function Get-CCMClientCacheItem {
     [cmdletbinding(DefaultParameterSetName = 'none')]
     param (
-
         [Parameter(ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ParameterSetName = 'ComputerName',
@@ -438,45 +463,27 @@ Function Install-CCMClientSoftwareUpdate {
         [ciminstance[]]$InputObject
     )
 
-    begin { }
+    begin {
+        $updateList = [System.Collections.Generic.List[ciminstance]]::new()
+    }
 
     process {
-        foreach ($a_ComputerName in $ComputerName) {
-            $cimSessionParam = @{
-                ComputerName = $a_ComputerName
-            }
-            if ($Credential) {
-                $cimSessionParam['Credential'] = $Credential
-            }
-
-            $updateHash = $Update | Group-Object -AsHashTable -Property PSComputerName
-
-            $cimParam = @{
-                CimSession = New-CCMClientCimSession @cimSessionParam
-                NameSpace  = 'root/ccm/clientsdk'
-            }
-
-            $updateHash.GetEnumerator() | ForEach-Object {
-                [ciminstance[]]$updateHash[$PSItem.Key]
-
-                #Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updateHash[$PSItem.Key] }
-
-            }
-
-            $updates = Get-CimInstance @cimParam -ClassName CCM_SoftwareUpdate
-
-            $updates |
-                Select-Object PSComputerName, ArticleID, Name |
-                    Out-String |
-                        Write-Verbose -Verbose
-
-            $null = Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updates }
-            Start-Sleep -Milliseconds 100
-            $updates | Get-CimInstance
-        }
+        $updateList.AddRange($InputObject)
     }
     end {
-
+        $updateHash = $updateList | Group-Object { $PSItem.CimSystemProperties.ServerName } -AsHashTable -AsString
+        Invoke-Command -ComputerName $updateHash.Keys.Where({$PSItem}) -ScriptBlock {
+            $localUpdateHash = $using:updateHash
+            $cimParam = @{
+                NameSpace  = 'root/ccm/clientsdk'
+                ClassName  = 'CCM_SoftwareUpdatesManager'
+                MethodName = 'InstallUpdates'
+                Arguments  = @{
+                    CCMUpdates = [ciminstance[]]$localUpdateHash[$env:COMPUTERNAME]
+                }
+            }
+            Invoke-CimMethod @cimParam #-ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updateHash[$PSItem.Key] }
+        }
     }
 }
 Function Invoke-CCMClientPackageRerun {
@@ -574,6 +581,10 @@ Function Invoke-CCMClientScheduleUpdate {
         [PSCredential]$Credential,
 
         [Parameter()]
+        [ValidateSet('SoftwareUpdateScan')]
+        [string[]]$ScheduleType,
+
+        [Parameter()]
         [switch]$Quiet
 
     )
@@ -630,11 +641,19 @@ Function Invoke-CCMClientScheduleUpdate {
             '{00000000-0000-0000-0000-000000000223}' = 'External event detection'
             '{00000000-0000-0000-0000-000000000225}' = 'LSRefreshDefaultMPTask'
         }
+        
+        $ScheduleTypeHash = @{
+            SoftwareUpdateScan = '{00000000-0000-0000-0000-000000000108}', '{00000000-0000-0000-0000-000000000113}'
+        }
     }
 
     Process {
-        $cimSessionParam = $PSBoundParameters.PSObject.Copy()
-        $null = $cimSessionParam.Remove('Quiet')
+        $cimSessionParam = @{
+            ComputerName = $ComputerName
+        }
+        if ($Credential) {
+            $cimSessionParam['Credential'] = $Credential
+        }
         $cimSession = New-CCMClientCimSession @cimSessionParam
 
         $cimSessionHash = @{ }
@@ -648,7 +667,9 @@ Function Invoke-CCMClientScheduleUpdate {
             Filter     = 'ScheduledMessageID LIKE "{00000000-0000-0000-0000-%"'
             CimSession = $cimSession
         }
-        #list available client schedules
+        if ($ScheduleType) {
+            $getScheduleParam['Filter'] = $ScheduleTypeHash[$ScheduleType].ForEach( { $PSItem }) -replace '.+', 'ScheduledMessageID = "$0"' -join " OR "
+        }
         $schedule = Get-CimInstance @getScheduleParam
 
         $cimParam = @{
@@ -657,12 +678,10 @@ Function Invoke-CCMClientScheduleUpdate {
             MethodName  = 'TriggerSchedule'
             ErrorAction = 'Stop'
         }
-
         foreach ($a_Schedule in $schedule) {
             Try {
                 Invoke-CimMethod @cimParam -CimSession $cimSessionHash[$a_Schedule.PSComputerName] -Arguments @{ sScheduleID = $a_Schedule.ScheduledMessageID } |
                     Add-Member -NotePropertyName Schedule -NotePropertyValue ('{1} - {0}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID) -PassThru:(-not $Quiet.IsPresent)
-
             }
             catch {
                 'Could not trigger schedule: {0} - {1}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID |
