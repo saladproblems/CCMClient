@@ -91,7 +91,7 @@ AliasesToExport = @()
 # DscResourcesToExport = @()
 
 # List of all modules packaged with this module
-ModuleList = @('CCMClient')
+# ModuleList = @()
 
 # List of all files packaged with this module
 # FileList = @()
