@@ -12,44 +12,26 @@
         [ciminstance[]]$InputObject
     )
 
-    begin { }
+    begin {
+        $updateList = [System.Collections.Generic.List[ciminstance]]::new()
+    }
 
     process {
-        foreach ($a_ComputerName in $ComputerName) {
-            $cimSessionParam = @{
-                ComputerName = $a_ComputerName
-            }
-            if ($Credential) {
-                $cimSessionParam['Credential'] = $Credential
-            }
-
-            $updateHash = $Update | Group-Object -AsHashTable -Property PSComputerName
-
-            $cimParam = @{
-                CimSession = New-CCMClientCimSession @cimSessionParam
-                NameSpace  = 'root/ccm/clientsdk'
-            }
-
-            $updateHash.GetEnumerator() | ForEach-Object {
-                [ciminstance[]]$updateHash[$PSItem.Key]
-
-                #Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updateHash[$PSItem.Key] }
-
-            }
-
-            $updates = Get-CimInstance @cimParam -ClassName CCM_SoftwareUpdate
-
-            $updates |
-                Select-Object PSComputerName, ArticleID, Name |
-                    Out-String |
-                        Write-Verbose -Verbose
-
-            $null = Invoke-CimMethod @cimParam -ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updates }
-            Start-Sleep -Milliseconds 100
-            $updates | Get-CimInstance
-        }
+        $updateList.AddRange($InputObject)
     }
     end {
-
+        $updateHash = $updateList | Group-Object { $PSItem.CimSystemProperties.ServerName } -AsHashTable -AsString
+        Invoke-Command -ComputerName $updateHash.Keys.Where({$PSItem}) -ScriptBlock {
+            $localUpdateHash = $using:updateHash
+            $cimParam = @{
+                NameSpace  = 'root/ccm/clientsdk'
+                ClassName  = 'CCM_SoftwareUpdatesManager'
+                MethodName = 'InstallUpdates'
+                Arguments  = @{
+                    CCMUpdates = [ciminstance[]]$localUpdateHash[$env:COMPUTERNAME]
+                }
+            }
+            Invoke-CimMethod @cimParam #-ClassName CCM_SoftwareUpdatesManager -MethodName InstallUpdates -Arguments @{ CCMUpdates = [ciminstance[]]$updateHash[$PSItem.Key] }
+        }
     }
 }

@@ -12,6 +12,10 @@
         [PSCredential]$Credential,
 
         [Parameter()]
+        [ValidateSet('SoftwareUpdateScan')]
+        [string[]]$ScheduleType,
+
+        [Parameter()]
         [switch]$Quiet
 
     )
@@ -68,11 +72,19 @@
             '{00000000-0000-0000-0000-000000000223}' = 'External event detection'
             '{00000000-0000-0000-0000-000000000225}' = 'LSRefreshDefaultMPTask'
         }
+        
+        $ScheduleTypeHash = @{
+            SoftwareUpdateScan = '{00000000-0000-0000-0000-000000000108}', '{00000000-0000-0000-0000-000000000113}'
+        }
     }
 
     Process {
-        $cimSessionParam = $PSBoundParameters.PSObject.Copy()
-        $null = $cimSessionParam.Remove('Quiet')
+        $cimSessionParam = @{
+            ComputerName = $ComputerName
+        }
+        if ($Credential) {
+            $cimSessionParam['Credential'] = $Credential
+        }
         $cimSession = New-CCMClientCimSession @cimSessionParam
 
         $cimSessionHash = @{ }
@@ -86,7 +98,9 @@
             Filter     = 'ScheduledMessageID LIKE "{00000000-0000-0000-0000-%"'
             CimSession = $cimSession
         }
-        #list available client schedules
+        if ($ScheduleType) {
+            $getScheduleParam['Filter'] = $ScheduleTypeHash[$ScheduleType].ForEach( { $PSItem }) -replace '.+', 'ScheduledMessageID = "$0"' -join " OR "
+        }
         $schedule = Get-CimInstance @getScheduleParam
 
         $cimParam = @{
@@ -95,12 +109,10 @@
             MethodName  = 'TriggerSchedule'
             ErrorAction = 'Stop'
         }
-
         foreach ($a_Schedule in $schedule) {
             Try {
                 Invoke-CimMethod @cimParam -CimSession $cimSessionHash[$a_Schedule.PSComputerName] -Arguments @{ sScheduleID = $a_Schedule.ScheduledMessageID } |
                     Add-Member -NotePropertyName Schedule -NotePropertyValue ('{1} - {0}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID) -PassThru:(-not $Quiet.IsPresent)
-
             }
             catch {
                 'Could not trigger schedule: {0} - {1}' -f $scheduleHash[$a_Schedule.ScheduledMessageID], $a_Schedule.ScheduledMessageID |

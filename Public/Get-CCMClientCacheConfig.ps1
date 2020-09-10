@@ -1,7 +1,6 @@
 function Get-CCMClientCacheConfig {
     [cmdletbinding(DefaultParameterSetName = 'none')]
     param (
-
         [Parameter(ValueFromPipeline = $true,
             ValueFromPipelineByPropertyName = $true,
             ParameterSetName = 'ComputerName',
