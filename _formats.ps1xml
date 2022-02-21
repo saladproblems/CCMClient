@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Configuration>
     <ViewDefinitions>
         <View>
@@ -8,10 +8,8 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                     <TableColumnHeader>
                         <Width>20</Width>
                     </TableColumnHeader>
@@ -164,8 +162,7 @@
                     <TableColumnHeader>
                         <Width>35</Width>
                     </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -197,16 +194,11 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -238,16 +230,11 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -279,16 +266,11 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -321,16 +303,11 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
@@ -362,18 +339,12 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
 
                 </TableHeaders>
                 <TableRowEntries>
@@ -410,19 +381,15 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                     <TableColumnHeader>
                         <Label>EvaluationState</Label>
                     </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
 
                 </TableHeaders>
                 <TableRowEntries>
@@ -436,6 +403,9 @@
                             </TableColumnItem>
                             <TableColumnItem>
                                 <ScriptBlock>[ccm.EvaluationState]($PSItem.EvaluationState)</ScriptBlock>
+                            </TableColumnItem>
+                            <TableColumnItem>
+                                <PropertyName>ErrorCode</PropertyName>
                             </TableColumnItem>
                             <TableColumnItem>
                                 <PropertyName>ArticleID</PropertyName>
@@ -459,22 +429,14 @@
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
 
                 </TableHeaders>
                 <TableRowEntries>
@@ -510,22 +472,19 @@
                 </TableRowEntries>
             </TableControl>
         </View>
-                <View>
+        <View>
             <Name>SMS_DesiredConfiguration</Name>
             <ViewSelectedBy>
                 <TypeName>Microsoft.Management.Infrastructure.CimInstance#root/ccm/dcm/SMS_DesiredConfiguration</TypeName>
             </ViewSelectedBy>
             <TableControl>
                 <TableHeaders>
+                    <TableColumnHeader></TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                     <TableColumnHeader>
+                        <Label>LastComplianceStatus</Label>
                     </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    <Label>LastComplianceStatus</Label>
-                    </TableColumnHeader>
-                    <TableColumnHeader>
-                    </TableColumnHeader>
+                    <TableColumnHeader></TableColumnHeader>
                 </TableHeaders>
                 <TableRowEntries>
                     <TableRowEntry>
